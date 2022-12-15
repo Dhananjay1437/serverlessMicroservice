@@ -1,5 +1,5 @@
 import { Construct } from "constructs";
-import { LambdaRestApi } from 'aws-cdk-lib/aws-apigateway';
+import { EndpointType, LambdaIntegration,  RestApi } from 'aws-cdk-lib/aws-apigateway';
 
 import { IFunction } from "aws-cdk-lib/aws-lambda";
 interface ExuberApiGatewayeProps{
@@ -8,41 +8,44 @@ interface ExuberApiGatewayeProps{
    orderFunction: IFunction;
 }
 export class ExuberApiGateway extends Construct{
-    public readonly productApiGateway: LambdaRestApi;
-    public readonly basketApiGateway: LambdaRestApi;
-    public readonly orderApiGateway: LambdaRestApi;
+  
+    private apiGateway:RestApi;
     constructor(scope:Construct,id:string,props:ExuberApiGatewayeProps){
         super(scope,id);
        //product
-     this.productApiGateway=this.createProductApiGateway(props.productFunction);
+       this.apiGateway=this.createApiGateWay();
+    this.createProductApiGateway(props.productFunction);
     //basket
-     this.basketApiGateway=this.createBasketApiGateway(props.basketFunction);
+   this.createBasketApiGateway(props.basketFunction);
  //order
-     this.orderApiGateway=this.createOrderApiGateway(props.orderFunction);
+   this.createOrderApiGateway(props.orderFunction);
     }
-   private createProductApiGateway(productFunction: IFunction):LambdaRestApi{
+
+    private createApiGateWay(){
+     return new RestApi(this,'ecomerceMicroServices',{
+        restApiName:'EcomerceMicroServices',
+       endpointTypes:[EndpointType.REGIONAL]
+       
+      });
+    }
+   private createProductApiGateway(productFunction: IFunction){
     //GET /product
 //POST /product
 //GET /product/{id}
 //PUT /product/{id}
 //DELETE /product/{id}
-const apiGateway=new LambdaRestApi(this,'productApi',{
-    restApiName:'Product Service',
-    handler:productFunction,
-    proxy:false
-  });
-  const product=apiGateway.root.addResource('product')
-  product.addMethod("GET");
-  product.addMethod("POST");
+ const product=this.apiGateway.root.addResource('product')
+ product.addMethod("GET",new LambdaIntegration(productFunction));
+  product.addMethod("POST",new LambdaIntegration(productFunction));
   const singProduct=product.addResource('{id}');// /product/{id}
-  singProduct.addMethod("GET");
-  singProduct.addMethod("PUT");
-  singProduct.addMethod("DELETE");
-  return apiGateway;
+  singProduct.addMethod("GET",new LambdaIntegration(productFunction));
+  singProduct.addMethod("PUT",new LambdaIntegration(productFunction));
+  singProduct.addMethod("DELETE",new LambdaIntegration(productFunction));
+  
    }
 
 
-   private createBasketApiGateway(basketFunction: IFunction):LambdaRestApi{
+   private createBasketApiGateway(basketFunction: IFunction){
     //GET /basket
 //POST /basket
 
@@ -50,38 +53,28 @@ const apiGateway=new LambdaRestApi(this,'productApi',{
 //GET /basket/{userName}
 //DELETE /basket/{userName}
 
-const apiGateway=new LambdaRestApi(this,'basketApi',{
-    restApiName:'Basket Service',
-    handler:basketFunction,
-    proxy:false
-  });
-  const basket=apiGateway.root.addResource('basket')
-  basket.addMethod("GET");
-  basket.addMethod("POST");
+  const basket=this.apiGateway.root.addResource('basket')
+  basket.addMethod("GET",new LambdaIntegration(basketFunction));
+  basket.addMethod("POST",new LambdaIntegration(basketFunction));
   const checkout=basket.addResource('checkout');
-  checkout.addMethod("POST");
+  checkout.addMethod("POST",new LambdaIntegration(basketFunction));
   const singBasket=basket.addResource('{userName}');// /basket/{userName}
-  singBasket.addMethod("GET");
- singBasket.addMethod("DELETE");
-  return apiGateway;
+  singBasket.addMethod("GET",new LambdaIntegration(basketFunction));
+ singBasket.addMethod("DELETE",new LambdaIntegration(basketFunction));
+  
    }
 
-   private createOrderApiGateway(orderFunction: IFunction):LambdaRestApi{
+   private createOrderApiGateway(orderFunction: IFunction){
     //GET /order
 
 
 //resourse name=order/{username}
 //GET /order/{userName}
 
-const apiGateway=new LambdaRestApi(this,'orderApi',{
-    restApiName:'Order Service',
-    handler:orderFunction,
-    proxy:false
-  });
-  const order=apiGateway.root.addResource('order')
-  order.addMethod("GET");
+  const order=this.apiGateway.root.addResource('order')
+  order.addMethod("GET",new LambdaIntegration(orderFunction));
 const singBasket=order.addResource('{userName}');// /order/{userName}
-  singBasket.addMethod("GET");
- return apiGateway;
+  singBasket.addMethod("GET",new LambdaIntegration(orderFunction));
+
    }
 }
